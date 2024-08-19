@@ -1,0 +1,14 @@
+SCENE LIST:
+- boot
+- preloader
+- main menu
+- game
+    - register
+    - scooping
+    - plating & toppings
+
+MECHANICS:
+    - day based
+    - multiple customers can be waiting
+    - to scoop, type flavour
+    - plating & toppings are physics based (papa's scooperia)
