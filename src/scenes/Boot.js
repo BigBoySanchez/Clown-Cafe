@@ -8,4 +8,8 @@ export class Boot extends Scene {
   preload() {
     this.load.image('preloader', 'assets/preloader.png');
   }
+
+  create() {
+    this.scene.start('Preloader');
+  }
 }
