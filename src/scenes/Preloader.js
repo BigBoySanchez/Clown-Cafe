@@ -10,7 +10,7 @@ export class Preloader extends Scene {
     const HEIGHT = this.game.scale.height;
 
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH / 2, HEIGHT / 128, 0x999999);
-    const bar = this.add.rectangle(WIDTH / 4, HEIGHT / 2, 0, HEIGHT / 32, 0xffffff)
+    const bar = this.add.rectangle((WIDTH / 2) - (WIDTH / 4), HEIGHT / 2, 0, HEIGHT / 32, 0xffffff).setOrigin(0, 0.5);
 
     this.load.on('progress', (progress) => {
       bar.width = (WIDTH / 2) * progress;
@@ -21,5 +21,15 @@ export class Preloader extends Scene {
     this.load.setPath('/assets');
 
     this.load.image('plate', 'plate.png');
+  }
+
+  create() {
+    this.input.on('pointerdown', () => {
+      this.scene.transition({
+        target: 'Decorate',
+        duration: 1000,
+        remove: false
+      });
+    });
   }
 }
