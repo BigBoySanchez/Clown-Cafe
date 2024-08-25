@@ -3,6 +3,7 @@ import { Game } from 'phaser';
 
 import { Boot } from './scenes/Boot';
 import { Preloader } from './scenes/Preloader';
+import { Decorate } from './scenes/Decorate';
 
 const config = {
   type: Phaser.AUTO,
@@ -18,7 +19,8 @@ const config = {
 
   scene: [
     Boot,
-    Preloader
+    Preloader,
+    Decorate
   ]
 };
 

@@ -11,15 +11,18 @@ export class Preloader extends Scene {
 
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH / 2, HEIGHT / 128, 0x999999);
     const bar = this.add.rectangle((WIDTH / 2) - (WIDTH / 4), HEIGHT / 2, 0, HEIGHT / 32, 0xffffff).setOrigin(0, 0.5);
+    const loadText = this.add.text(WIDTH / 2, (HEIGHT / 2) + (HEIGHT / 16), 'Loading...').setOrigin(0.5);
 
     this.load.on('progress', (progress) => {
       bar.width = (WIDTH / 2) * progress;
+      if(progress == 1) loadText.setText('Click anywhere to start!');
     });
   }
 
   preload() {
     this.load.setPath('/assets');
 
+    this.load.image('table', 'table.png');
     this.load.image('plate', 'plate.png');
   }
 
@@ -27,8 +30,8 @@ export class Preloader extends Scene {
     this.input.on('pointerdown', () => {
       this.scene.transition({
         target: 'Decorate',
-        duration: 1000,
-        remove: false
+        duration: 0,
+        remove: true
       });
     });
   }
