@@ -12,3 +12,5 @@ MECHANICS:
     - multiple customers can be waiting
     - to scoop, type flavour
     - plating & toppings are physics based (papa's scooperia)
+    - droppable: falls until hits plate / ice cream
+    - stickable: goes in front / sides of ice cream
