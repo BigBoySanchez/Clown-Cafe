@@ -57,15 +57,55 @@ export class Decorate extends Scene {
       //first separator would be at 0
       if(i !== 0) this.add.rectangle(TOPPING_W / 2, SEPARATOR, TOPPING_W, 5, 0xffffff).setOrigin(0.5, 0.5);
     }
+    this.add.image(WIDTH / 2, 500, 'table').setScale(0.41);
+    this.add.image(WIDTH / 2, 600, 'plate').setScale(0.2);
 
+    //event handlers
     this.input.on('gameobjectdown', (pointer, gameObject) => {
       if(!pointer.leftButtonDown()) return;
       
       console.log(gameObject.type);
+      this.makeToppingDrag(gameObject);
     });
-    
 
-    this.add.image(WIDTH / 2, 500, 'table').setScale(0.41);
-    this.add.image(WIDTH / 2, 600, 'plate').setScale(0.2);
+    this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
+      gameObject.x = dragX;
+      gameObject.y = dragY;
+    });
+
+    this.input.on('dragend', (pointer, gameObject) => {
+      console.log(`drag end`);
+      gameObject.destroy();
+    });
+  }
+
+  makeToppingDrag(topping) {
+    var newTopping = undefined;
+    
+    if(topping.type === 'Arc') {
+      newTopping = this.add.arc(topping.x, topping.y, topping.radius, 
+                                topping.startAngle, topping.endAngle, 
+                                topping.anticlockwise, topping.fillColor)
+                           //.setOrigin(topping.originX, topping.originY)
+                           .setScale(topping.scaleX, topping.scaleY);
+      newTopping.x += 300;
+    } else if(topping.type === 'Triangle') {
+      newTopping = this.add.triangle(topping.x, topping.y, 
+                                     topping.x1, topping.y1, 
+                                     topping.x2, topping.y2, 
+                                     topping.x3, topping.y3, topping.fillColor)
+                           .setScale(topping.scaleX, topping.scaleY);
+      newTopping.x += 300;
+    } else if(topping.type === 'Ellipse') {
+      newTopping = this.add.ellipse(topping.x, topping.y, 
+                                    topping.width, topping.height, topping.fillColor)
+                           .setScale(topping.scaleX, topping.scaleY);
+      newTopping.x += 300;
+    } else {
+      return null;
+    }
+
+    this.input.setDraggable(newTopping, true);
+    return newTopping;
   }
 }
