@@ -12,13 +12,15 @@ export class Decorate extends Scene {
     const TOPPING_H = 375;
     const TOPPING_W = 150;
     const MAX_TOPPINGS = 5;
-
+    
+    this.add.image(WIDTH / 2, 500, 'table').setScale(0.41);
+    this.add.image(WIDTH / 2, 600, 'plate').setScale(0.2);
     this.add.rectangle(0, 0, TOPPING_W, TOPPING_H, 0x4b3952).setOrigin(0, 0);
     
     const toppings = [
-      this.add.arc(0, 0, 128, 0, 180, true, 0xfffdd0)             //ice cream
+      this.add.arc(0, 0, 50, 0, 180, true, 0xfffdd0)             //ice cream
               .setOrigin(0.5, 0.3)
-              .setScale(0.3)
+              .setScale(1)
               .setState('decoration'),        
       this.add.circle(0, 0, 20, 0x4c3228)                         //cookie
               .setOrigin(0.5)
@@ -33,6 +35,7 @@ export class Decorate extends Scene {
               .setState('decoration')
     ]
     
+    
     for (let i = 0; i < MAX_TOPPINGS; i++) {
       const SEPARATOR = i * TOPPING_H / MAX_TOPPINGS;
       
@@ -41,30 +44,17 @@ export class Decorate extends Scene {
         toppings[i].setY(SEPARATOR + (TOPPING_H / MAX_TOPPINGS / 2)); //to get topping between separators
 
         toppings[i].setInteractive();
-        // toppings[i].on('pointerdown', (pointer) => {
-        //   if(!pointer.leftButtonDown()) return;
-
-        //   //create draggable copy of the topping
-        //   const toPlace = Phaser.Utils.Objects.DeepCopy(toppings[i]);
-        //   this.input.setDraggable(toPlace, true);
-
-        //   toPlace.on('drag', () => {
-        //     this
-        //   });
-        // });
+        this.input.setDraggable(toppings[i], true);
       }
       
       //first separator would be at 0
       if(i !== 0) this.add.rectangle(TOPPING_W / 2, SEPARATOR, TOPPING_W, 5, 0xffffff).setOrigin(0.5, 0.5);
     }
-    this.add.image(WIDTH / 2, 500, 'table').setScale(0.41);
-    this.add.image(WIDTH / 2, 600, 'plate').setScale(0.2);
 
     //event handlers
     this.input.on('gameobjectdown', (pointer, gameObject) => {
       if(!pointer.leftButtonDown()) return;
       
-      console.log(gameObject.type);
       this.makeToppingDrag(gameObject);
     });
 
@@ -74,7 +64,6 @@ export class Decorate extends Scene {
     });
 
     this.input.on('dragend', (pointer, gameObject) => {
-      console.log(`drag end`);
       gameObject.destroy();
     });
   }
@@ -83,29 +72,27 @@ export class Decorate extends Scene {
     var newTopping = undefined;
     
     if(topping.type === 'Arc') {
-      newTopping = this.add.arc(topping.x, topping.y, topping.radius, 
-                                topping.startAngle, topping.endAngle, 
+      newTopping = this.add.arc(topping.x, topping.y, 
+                                topping.radius, topping.startAngle, topping.endAngle, 
                                 topping.anticlockwise, topping.fillColor)
-                           //.setOrigin(topping.originX, topping.originY)
+                           .setOrigin(topping.originX, topping.originY)
                            .setScale(topping.scaleX, topping.scaleY);
-      newTopping.x += 300;
     } else if(topping.type === 'Triangle') {
       newTopping = this.add.triangle(topping.x, topping.y, 
                                      topping.x1, topping.y1, 
                                      topping.x2, topping.y2, 
                                      topping.x3, topping.y3, topping.fillColor)
                            .setScale(topping.scaleX, topping.scaleY);
-      newTopping.x += 300;
     } else if(topping.type === 'Ellipse') {
       newTopping = this.add.ellipse(topping.x, topping.y, 
                                     topping.width, topping.height, topping.fillColor)
                            .setScale(topping.scaleX, topping.scaleY);
-      newTopping.x += 300;
     } else {
       return null;
     }
 
+    newTopping.setInteractive();
     this.input.setDraggable(newTopping, true);
-    return newTopping;
+    return null;
   }
 }
