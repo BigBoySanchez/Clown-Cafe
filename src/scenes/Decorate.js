@@ -6,33 +6,32 @@ export class Decorate extends Scene {
     super('Decorate');
   }
 
-  init() {
+  create() {
     const WIDTH = this.game.scale.width;
     const HEIGHT = this.game.scale.height;
-    const TOPPING_H = 375;
-    const TOPPING_W = 150;
+    const TOPPING_H = HEIGHT;
+    const TOPPING_W = 400;
     const MAX_TOPPINGS = 5;
     
-    this.add.image(WIDTH / 2, 500, 'table').setScale(0.41);
-    this.add.image(WIDTH / 2, 600, 'plate').setScale(0.2);
+    this.add.image((WIDTH + TOPPING_W) / 2, 500, 'table').setScale(0.41);
+    this.add.image((WIDTH + TOPPING_W) / 2, 600, 'plate').setScale(0.2);
     this.add.rectangle(0, 0, TOPPING_W, TOPPING_H, 0x4b3952).setOrigin(0, 0);
     
     const toppings = [
-      this.add.arc(0, 0, 50, 0, 180, true, 0xfffdd0)             //ice cream
-              .setOrigin(0.5, 0.3)
-              .setScale(1)
-              .setState('decoration'),        
-      this.add.circle(0, 0, 20, 0x4c3228)                         //cookie
-              .setOrigin(0.5)
-              .setState('decoration'),                                   
-      this.add.triangle(0, 0, 0, 128, 64, 0, 128, 128, 0xC4A484)  //cone
-              .setOrigin(0.5)
-              .setScale(0.3)
-              .setState('decoration'),                                        
-      this.add.ellipse(0, 0, 32, 40, 0xD20A2E)                    //cherry
-              .setState('decoration'),
-      this.add.circle(0, 0, 16, 0x7B3F00)                         //chocolate
-              .setState('decoration')
+      new Phaser.GameObjects.Arc(this, 0, 0, 145, 180, 360, false, 0xfffdd0)
+                            .setOrigin(0.5, 0.25)
+                            .setName('ice cream'),        
+      new Phaser.GameObjects.Arc(this, 0, 0, 20, 0, 360, false, 0x4c3228)
+                            .setOrigin(0.5)
+                            .setName('cookie'),                                   
+      new Phaser.GameObjects.Triangle(this, 0, 0, 400, 0, 0, 108, 0, -108, 0xC4A484)
+                            .setOrigin(0.5, 0)
+                            .setScale(0.6)
+                            .setName('cone'),                                        
+      new Phaser.GameObjects.Ellipse(this, 0, 0, 32, 40, 0xD20A2E)
+                            .setName('cherry'),
+      new Phaser.GameObjects.Arc(this, 0, 0, 16, 0, 360, false, 0x7B3F00)
+                            .setName('chocolate')
     ]
     
     
@@ -42,9 +41,8 @@ export class Decorate extends Scene {
       if(i < toppings.length) {
         toppings[i].setX(TOPPING_W / 2);
         toppings[i].setY(SEPARATOR + (TOPPING_H / MAX_TOPPINGS / 2)); //to get topping between separators
-
-        toppings[i].setInteractive();
-        this.input.setDraggable(toppings[i], true);
+        
+        this.addTopping(toppings[i]);
       }
       
       //first separator would be at 0
@@ -52,10 +50,21 @@ export class Decorate extends Scene {
     }
 
     //event handlers
-    this.input.on('gameobjectdown', (pointer, gameObject) => {
-      if(!pointer.leftButtonDown()) return;
-      
-      this.makeToppingDrag(gameObject);
+    this.input.on('dragstart', (pointer, gameObject) => {
+      this.children.bringToTop(gameObject);
+      if(gameObject.name === 'cone') {
+        this.add.tween({
+          targets: gameObject,
+          delay: 0,
+          duration: 100,
+          ease: 'Power10',
+          angle: -90,
+          onComplete: (tween) => tween.remove(),
+          persist: true
+        });
+      }
+
+      this.addTopping(gameObject);
     });
 
     this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
@@ -68,31 +77,58 @@ export class Decorate extends Scene {
     });
   }
 
-  makeToppingDrag(topping) {
+  addTopping(topping) {
     var newTopping = undefined;
+    var hitBox = undefined;
     
     if(topping.type === 'Arc') {
       newTopping = this.add.arc(topping.x, topping.y, 
                                 topping.radius, topping.startAngle, topping.endAngle, 
                                 topping.anticlockwise, topping.fillColor)
                            .setOrigin(topping.originX, topping.originY)
-                           .setScale(topping.scaleX, topping.scaleY);
+                           .setScale(topping.scaleX, topping.scaleY)
+                           .setName(topping.name);
     } else if(topping.type === 'Triangle') {
+      const geom = topping.geom;
+      
       newTopping = this.add.triangle(topping.x, topping.y, 
-                                     topping.x1, topping.y1, 
-                                     topping.x2, topping.y2, 
-                                     topping.x3, topping.y3, topping.fillColor)
-                           .setScale(topping.scaleX, topping.scaleY);
+                                     geom.x1, geom.y1, 
+                                     geom.x2, geom.y2, 
+                                     geom.x3, geom.y3, topping.fillColor)
+                           .setOrigin(topping.originX, topping.originY)
+                           .setScale(topping.scaleX, topping.scaleY)
+                           .setName(topping.name);
     } else if(topping.type === 'Ellipse') {
       newTopping = this.add.ellipse(topping.x, topping.y, 
                                     topping.width, topping.height, topping.fillColor)
-                           .setScale(topping.scaleX, topping.scaleY);
+                           .setOrigin(topping.originX, topping.originY)
+                           .setScale(topping.scaleX, topping.scaleY)
+                           .setName(topping.name);
     } else {
       return null;
     }
 
-    newTopping.setInteractive();
-    this.input.setDraggable(newTopping, true);
-    return null;
+    const topLeft = newTopping.getLocalPoint(newTopping.getTopLeft().x, newTopping.getTopLeft().y);
+    hitBox = newTopping.getBounds();
+    hitBox.x = topLeft.x;
+    hitBox.y = topLeft.y;
+    
+    //edge cases where hitbox aint right
+    if(newTopping.name === 'ice cream') hitBox.height /= 2;
+    else if(newTopping.name === 'cone') {
+      hitBox.y -= 108;
+
+      hitBox.width *= 1.65;
+      hitBox.height *= 1.65;
+    }
+
+    newTopping.setInteractive({
+      hitArea: hitBox,
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      draggable: true,
+      useHandCursor: true
+    });
+    this.input.enableDebug(newTopping);
+    return newTopping;
   }
 }

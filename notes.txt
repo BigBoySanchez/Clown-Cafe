@@ -14,3 +14,4 @@ MECHANICS:
     - plating & toppings are physics based (papa's scooperia)
     - droppable: falls until hits plate / ice cream
     - stickable: goes in front / sides of ice cream
+    - make function that adds gameobjs to scene
