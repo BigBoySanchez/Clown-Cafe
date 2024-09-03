@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+import Phaser, { Physics } from 'phaser';
 import { Game } from 'phaser';
 
 import { Boot } from './scenes/Boot';
@@ -12,10 +12,21 @@ const config = {
   parent: "game-container",
   backgroundColor: '#dcbcdf',
   antialias: true,
+  
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
     resizeInterval: 500
+  },
+
+  physics: {
+    default: 'arcade',
+    arcade: {
+      fps: 60,
+      gravity: {
+        y: 800
+      }
+    }
   },
 
   scene: [

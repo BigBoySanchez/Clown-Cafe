@@ -13,17 +13,18 @@ export class Decorate extends Scene {
     const TOPPING_W = 400;
     const MAX_TOPPINGS = 5;
     
-    this.add.image((WIDTH + TOPPING_W) / 2, 500, 'table').setScale(0.41);
-    this.add.image((WIDTH + TOPPING_W) / 2, 600, 'plate').setScale(0.2);
+    //this.physics.add.image((WIDTH + TOPPING_W) / 2, 500, 'table').setScale(0.41);
+    //this.physics.add.image((WIDTH + TOPPING_W) / 2, 600, 'plate').setScale(0.2).refreshBody();
+    this.physics.add.staticImage((WIDTH + TOPPING_W) / 2, 500, 'table').setScale(0.41);
+    this.physics.add.staticImage((WIDTH + TOPPING_W) / 2, 600, 'plate').setScale(0.2);
     this.add.rectangle(0, 0, TOPPING_W, TOPPING_H, 0x4b3952).setOrigin(0, 0);
     
     const toppings = [
       new Phaser.GameObjects.Arc(this, 0, 0, 145, 180, 360, false, 0xfffdd0)
                             .setOrigin(0.5, 0.25)
                             .setName('ice cream'),        
-      new Phaser.GameObjects.Arc(this, 0, 0, 20, 0, 360, false, 0x4c3228)
-                            .setOrigin(0.5)
-                            .setName('cookie'),                                   
+      new Phaser.GameObjects.Ellipse(this, 0, 0, 320, 60, 0x4c3228)
+                            .setName('cookie'),
       new Phaser.GameObjects.Triangle(this, 0, 0, 400, 0, 0, 108, 0, -108, 0xC4A484)
                             .setOrigin(0.5, 0)
                             .setScale(0.6)
@@ -56,7 +57,7 @@ export class Decorate extends Scene {
         this.add.tween({
           targets: gameObject,
           delay: 0,
-          duration: 100,
+          duration: 150,
           ease: 'Power10',
           angle: -90,
           onComplete: (tween) => tween.remove(),
@@ -73,7 +74,10 @@ export class Decorate extends Scene {
     });
 
     this.input.on('dragend', (pointer, gameObject) => {
-      gameObject.destroy();
+      const dropping = this.physics.add.existing(gameObject, false).body;
+      dropping.setCollideWorldBounds(true);
+      
+      //gameObject.destroy();
     });
   }
 
@@ -88,6 +92,14 @@ export class Decorate extends Scene {
                            .setOrigin(topping.originX, topping.originY)
                            .setScale(topping.scaleX, topping.scaleY)
                            .setName(topping.name);
+    } else if(topping.type === 'Rectangle') {
+      newTopping = this.add.rectangle(topping.x, topping.y, 
+                                      topping.width, topping.height, 
+                                      topping.fillColor)
+                           .setOrigin(topping.originX, topping.originY)
+                           .setScale(topping.scaleX, topping.scaleY)
+                           .setName(topping.name);
+                            
     } else if(topping.type === 'Triangle') {
       const geom = topping.geom;
       
@@ -122,13 +134,23 @@ export class Decorate extends Scene {
       hitBox.height *= 1.65;
     }
 
+    newTopping.on('destroy', (gameObject, fromScene) => {
+      console.log(`obj: ${gameObject.name} | fromScene: ${fromScene}`);
+    });
+    
     newTopping.setInteractive({
       hitArea: hitBox,
       hitAreaCallback: Phaser.Geom.Rectangle.Contains,
       draggable: true,
       useHandCursor: true
     });
+    
+    newTopping.addListener('removedfromscene', (gameObject) => {
+      console.log(`${gameObject.name} removed`);
+    });
     this.input.enableDebug(newTopping);
+    
+    
     return newTopping;
   }
 }
