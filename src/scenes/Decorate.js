@@ -1,4 +1,4 @@
-import { Scene } from "phaser";
+import { GameObjects, Scene } from "phaser";
 import Phaser from "phaser";
 
 export class Decorate extends Scene {
@@ -15,9 +15,23 @@ export class Decorate extends Scene {
     
     //this.physics.add.image((WIDTH + TOPPING_W) / 2, 500, 'table').setScale(0.41);
     //this.physics.add.image((WIDTH + TOPPING_W) / 2, 600, 'plate').setScale(0.2).refreshBody();
-    this.physics.add.staticImage((WIDTH + TOPPING_W) / 2, 500, 'table').setScale(0.41);
-    this.physics.add.staticImage((WIDTH + TOPPING_W) / 2, 600, 'plate').setScale(0.2);
-    this.add.rectangle(0, 0, TOPPING_W, TOPPING_H, 0x4b3952).setOrigin(0, 0);
+    const table = this.physics.add.staticImage((WIDTH + TOPPING_W) / 2, 500, 'table').setScale(0.41).setImmovable(true);
+    const plate = this.physics.add.staticImage((WIDTH + TOPPING_W) / 2, 600, 'plate').setScale(0.2).setImmovable(true);
+    
+    const toppingBox = this.add.rectangle(0, 0, TOPPING_W, TOPPING_H, 0x4b3952).setOrigin(0, 0);
+    const toppingBody = this.physics.add.staticBody(0, 0, TOPPING_W, TOPPING_H);
+    
+    // table.body.onCollide = true;
+    // table.refreshBody();
+    // table.body.y = 220; //has to be a better way
+    // table.body.setSize(WIDTH - TOPPING_W, 150);
+    
+    plate.body.onCollide = true;
+    plate.refreshBody();
+    plate.body.y = plate.body.y + 195;
+    plate.body.setSize(plate.body.width * 0.9, 300);
+    
+    toppingBody.onOverlap = true;
     
     const toppings = [
       new Phaser.GameObjects.Arc(this, 0, 0, 145, 180, 360, false, 0xfffdd0)
@@ -73,11 +87,77 @@ export class Decorate extends Scene {
       gameObject.y = dragY;
     });
 
-    this.input.on('dragend', (pointer, gameObject) => {
-      const dropping = this.physics.add.existing(gameObject, false).body;
-      dropping.setCollideWorldBounds(true);
+    this.input.on('dragend', (pointer, gameObject, dropped) => {
+      const newGuy = this.physics.add.existing(gameObject, false);
+      const dropping = newGuy.body;
+      this.input.clear(gameObject, true);
       
-      //gameObject.destroy();
+      if(dropped) console.log('Dropped in drop zone');
+      
+      //fixing collision boxes
+      if(gameObject.name === 'ice cream') {
+        dropping.height /= 2;
+
+        //and allow toppings to go on it
+      } else if(gameObject.name === 'cone') {
+        dropping.setOffset(0, -100)
+        dropping.setSize(216, dropping.height * 1.4);
+      }
+
+      //this.physics.add.overlap(gameObject, plate);
+      //this.physics.add.overlap(gameObject, table);
+      this.physics.add.overlap(gameObject, toppingBody);
+      
+      this.physics.add.collider(gameObject, plate);
+      this.physics.add.collider(gameObject, table);
+      dropping.setCollideWorldBounds(true);
+    });
+
+    this.physics.world.on('overlap', (obj1, obj2, b1, b2) => {
+      const topping = /*(b1.onOverlap)? obj2 :*/ obj1;
+      
+      this.add.tween({
+        targets: topping,
+        delay: 0,
+        duration: 150,
+        ease: 'Power0',
+        x: TOPPING_W / 2,
+        y: toppings[this.lazyFind(topping, toppings)].y,
+        angle: 0,
+        onComplete: (tween, targets) => {
+          targets[0].body.destroy();
+          setTimeout(() => targets[0].destroy(), 200);
+          
+          tween.remove();
+        },
+        completeDelay: 0,
+        persist: true
+      });
+    });
+
+    this.physics.world.on('collide', (obj1, obj2, b1, b2) => {
+      if(b1.touching.down) b1.setAllowGravity(false);
+
+      if(obj1?.name === 'ice cream') {
+        // Create the semicircular drop zone as a polygon (this uses points along the arc)
+        const semiCircleVertices = [];
+        for (let angle = Math.PI; angle <= 2 * Math.PI; angle += 0.1) {
+            semiCircleVertices.push({
+                x: obj1.getCenter().x + obj1.radius * Math.cos(angle),
+                y: obj1.getCenter().y + obj1.radius * Math.sin(angle)
+            });
+        }
+        semiCircleVertices.push({ x: obj1.getCenter().x + obj1.radius, y: obj1.getCenter().y });
+        semiCircleVertices.push({ x: obj1.getCenter().x - obj1.radius, y: obj1.getCenter().y });
+  
+        // Create the drop zone using the polygonal shape of the semicircle
+        const dropZone = this.add.zone(obj1.getCenter().x, obj1.getCenter().y).setSize(2 * obj1.radius, obj1.radius);
+        dropZone.setInteractive(new Phaser.Geom.Polygon(semiCircleVertices), Phaser.Geom.Polygon.Contains);
+
+        console.log(dropZone);
+      }
+
+      //obj1.body.destroy();
     });
   }
 
@@ -126,31 +206,48 @@ export class Decorate extends Scene {
     hitBox.y = topLeft.y;
     
     //edge cases where hitbox aint right
-    if(newTopping.name === 'ice cream') hitBox.height /= 2;
-    else if(newTopping.name === 'cone') {
-      hitBox.y -= 108;
+    if(newTopping.name === 'cone') {
+      // hitBox.y -= 108;
 
-      hitBox.width *= 1.65;
-      hitBox.height *= 1.65;
+      // hitBox.width *= 1.65;
+      // hitBox.height *= 1.65;
+
+      newTopping.setInteractive({
+        hitArea: newTopping.geom,
+        hitAreaCallback: Phaser.Geom.Triangle.Contains,
+        draggable: true,
+        useHandCursor: true
+      });
+    } else {
+      if(newTopping.name === 'ice cream') hitBox.height /= 2;
+      newTopping.setInteractive({
+        hitArea: hitBox,
+        hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+        draggable: true,
+        useHandCursor: true
+      });
+    }    
+
+    if(this.physics.getConfig().debug) {
+      newTopping.on('destroy', (gameObject, fromScene) => {
+        console.log(`obj: ${gameObject.name} | fromScene: ${fromScene}`);
+      });
+      newTopping.addListener('removedfromscene', (gameObject) => {
+        console.log(`${gameObject.name} removed`);
+      });
+      this.input.enableDebug(newTopping);
     }
-
-    newTopping.on('destroy', (gameObject, fromScene) => {
-      console.log(`obj: ${gameObject.name} | fromScene: ${fromScene}`);
-    });
-    
-    newTopping.setInteractive({
-      hitArea: hitBox,
-      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
-      draggable: true,
-      useHandCursor: true
-    });
-    
-    newTopping.addListener('removedfromscene', (gameObject) => {
-      console.log(`${gameObject.name} removed`);
-    });
-    this.input.enableDebug(newTopping);
     
     
     return newTopping;
   }
+
+  //this is TERRIBLE
+  lazyFind(obj, toppings) {
+    for(let i = 0; i < toppings.length; i++) {
+      if(toppings[i].name === obj.name) return i;
+    }
+
+    return -1;
+  };
 }
