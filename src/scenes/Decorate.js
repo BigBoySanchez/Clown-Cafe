@@ -49,7 +49,8 @@ export class Decorate extends Scene {
                             .setName('chocolate')
     ]
     
-    
+    const creamGroup = this.physics.add.staticGroup([]);
+
     for (let i = 0; i < MAX_TOPPINGS; i++) {
       const SEPARATOR = i * TOPPING_H / MAX_TOPPINGS;
       
@@ -92,14 +93,16 @@ export class Decorate extends Scene {
       const dropping = newGuy.body;
       this.input.clear(gameObject, true);
       
-      if(dropped) console.log('Dropped in drop zone');
-      
       //fixing collision boxes
       if(gameObject.name === 'ice cream') {
         dropping.height /= 2;
 
         //and allow toppings to go on it
-      } else if(gameObject.name === 'cone') {
+      } else {
+        this.physics.add.collider(gameObject, creamGroup);
+      }
+      
+      if(gameObject.name === 'cone') {
         dropping.setOffset(0, -100)
         dropping.setSize(216, dropping.height * 1.4);
       }
@@ -110,7 +113,7 @@ export class Decorate extends Scene {
       
       this.physics.add.collider(gameObject, plate);
       this.physics.add.collider(gameObject, table);
-      dropping.setCollideWorldBounds(true);
+      dropping.setCollideWorldBounds(true, 0, 0, true);
     });
 
     this.physics.world.on('overlap', (obj1, obj2, b1, b2) => {
@@ -136,28 +139,20 @@ export class Decorate extends Scene {
     });
 
     this.physics.world.on('collide', (obj1, obj2, b1, b2) => {
+      console.log("collision");
       if(b1.touching.down) b1.setAllowGravity(false);
 
       if(obj1?.name === 'ice cream') {
-        // Create the semicircular drop zone as a polygon (this uses points along the arc)
-        const semiCircleVertices = [];
-        for (let angle = Math.PI; angle <= 2 * Math.PI; angle += 0.1) {
-            semiCircleVertices.push({
-                x: obj1.getCenter().x + obj1.radius * Math.cos(angle),
-                y: obj1.getCenter().y + obj1.radius * Math.sin(angle)
-            });
-        }
-        semiCircleVertices.push({ x: obj1.getCenter().x + obj1.radius, y: obj1.getCenter().y });
-        semiCircleVertices.push({ x: obj1.getCenter().x - obj1.radius, y: obj1.getCenter().y });
-  
-        // Create the drop zone using the polygonal shape of the semicircle
-        const dropZone = this.add.zone(obj1.getCenter().x, obj1.getCenter().y).setSize(2 * obj1.radius, obj1.radius);
-        dropZone.setInteractive(new Phaser.Geom.Polygon(semiCircleVertices), Phaser.Geom.Polygon.Contains);
+        creamGroup.add(obj1, false);
+        creamGroup.refresh();
+        console.log(creamGroup.getLength());
+      } 
+      
+      else obj1.body.destroy();
+    });
 
-        console.log(dropZone);
-      }
-
-      //obj1.body.destroy();
+    this.physics.world.on('worldbounds', (body, up, down) => {
+     if(down) body.destroy();
     });
   }
 
