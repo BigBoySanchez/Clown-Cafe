@@ -49,7 +49,8 @@ export class Decorate extends Scene {
                             .setName('chocolate')
     ]
     
-    const creamGroup = this.physics.add.staticGroup([]);
+    var cream = undefined;
+    var creamCollide = undefined;
 
     for (let i = 0; i < MAX_TOPPINGS; i++) {
       const SEPARATOR = i * TOPPING_H / MAX_TOPPINGS;
@@ -80,7 +81,7 @@ export class Decorate extends Scene {
         });
       }
 
-      this.addTopping(gameObject);
+      if(gameObject.name !== 'ice cream') this.addTopping(gameObject);
     });
 
     this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
@@ -89,70 +90,86 @@ export class Decorate extends Scene {
     });
 
     this.input.on('dragend', (pointer, gameObject, dropped) => {
-      const newGuy = this.physics.add.existing(gameObject, false);
-      const dropping = newGuy.body;
+      // Make sure the object has a physics body
+      if (!gameObject.body) {
+        this.physics.add.existing(gameObject, false); // Add physics body to the gameObject
+      }
+      
+      //const newGuy = this.physics.add.existing(gameObject, false);
+      const dropping = gameObject.body;
       this.input.clear(gameObject, true);
       
       //fixing collision boxes
       if(gameObject.name === 'ice cream') {
-        dropping.height /= 2;
+        dropping.setSize(gameObject.width, gameObject.height / 2.1, false);
+        dropping.setOffset(0, 8);
 
         //and allow toppings to go on it
-      } else {
-        this.physics.add.collider(gameObject, creamGroup);
       }
       
       if(gameObject.name === 'cone') {
-        dropping.setOffset(0, -100)
-        dropping.setSize(216, dropping.height * 1.4);
+        dropping.setOffset(0, 0)
+        dropping.setSize(216, dropping.height * 1.2);
       }
 
       //this.physics.add.overlap(gameObject, plate);
       //this.physics.add.overlap(gameObject, table);
       this.physics.add.overlap(gameObject, toppingBody);
       
-      this.physics.add.collider(gameObject, plate);
-      this.physics.add.collider(gameObject, table);
+      const coll = this.physics.add.collider(gameObject, plate);
+      if(gameObject.name === 'ice cream') creamCollide = coll;
+      else if(cream) this.physics.add.collider(gameObject, cream);
       dropping.setCollideWorldBounds(true, 0, 0, true);
     });
 
     this.physics.world.on('overlap', (obj1, obj2, b1, b2) => {
       const topping = /*(b1.onOverlap)? obj2 :*/ obj1;
+      topping.body.destroy();
       
       this.add.tween({
         targets: topping,
         delay: 0,
         duration: 150,
-        ease: 'Power0',
+        ease: 'Power10',
         x: TOPPING_W / 2,
         y: toppings[this.lazyFind(topping, toppings)].y,
         angle: 0,
-        onComplete: (tween, targets) => {
-          targets[0].body.destroy();
-          setTimeout(() => targets[0].destroy(), 200);
+        onComplete: (tween, targets) => {          
+          if(targets[0].name !== 'ice cream'){
+            setTimeout(() => targets[0].destroy(), 200);
+          } else {
+            setTimeout(() => targets[0].destroy(), 200);
+            this.addTopping(toppings[0]);
+          }
           
           tween.remove();
         },
         completeDelay: 0,
-        persist: true
+        persist: false
       });
     });
 
     this.physics.world.on('collide', (obj1, obj2, b1, b2) => {
       console.log("collision");
-      if(b1.touching.down) b1.setAllowGravity(false);
+      // Set immovable to stop further movement
+      obj1.body.setImmovable(true);
+      obj1.body.setAllowGravity(false) // Ensure the object stops moving
 
-      if(obj1?.name === 'ice cream') {
-        creamGroup.add(obj1, false);
-        creamGroup.refresh();
-        console.log(creamGroup.getLength());
-      } 
-      
-      else obj1.body.destroy();
+      if(obj1.name === 'ice cream' && creamCollide) {
+        this.physics.world.removeCollider(creamCollide);
+        obj1.body.onCollide = true;
+        //this.physics.add.existing(obj1, true);
+        //obj1.body.setOffset(0, obj1.body.y - 500);
+
+        cream = obj1;
+      } else {
+        this.physics.world.remove(obj1.body);
+
+      }
     });
 
     this.physics.world.on('worldbounds', (body, up, down) => {
-     if(down) body.destroy();
+     if(down) this.physics.world.remove(body);
     });
   }
 

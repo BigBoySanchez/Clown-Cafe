@@ -23,7 +23,7 @@ const config = {
     default: 'arcade',
     arcade: {
       fps: 60,
-      fixedStep: false,
+      fixedStep: true,
       overlapBias: 0,
       gravity: {
         y: 800
