@@ -1,6 +1,4 @@
-import { Scene } from "phaser";
-
-export class Preloader extends Scene {
+export class Preloader extends Phaser.Scene {
   constructor() {
     super('Preloader');
   }
@@ -15,15 +13,22 @@ export class Preloader extends Scene {
 
     this.load.on('progress', (progress) => {
       bar.width = (WIDTH / 2) * progress;
-      if(progress == 1) loadText.setText('Click anywhere to start!');
+      if(progress === 1) setTimeout(() => loadText.setText('Click anywhere to start!'), 1);
     });
   }
 
   preload() {
-    this.load.setPath('/assets');
+    this.load.setPath('./public/assets');
+
+    //DELETE
+    this.load.image('LEGEND', 'IMG_0056.JPG');
 
     this.load.image('table', 'table.png');
     this.load.image('plate', 'plate.png');
+
+    this.load.image('clear', 'clear.png');
+    this.load.image('undo', 'undo.png');
+    this.load.image('done', 'done.png');
   }
 
   create() {

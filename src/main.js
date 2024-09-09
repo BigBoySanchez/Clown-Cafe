@@ -1,9 +1,7 @@
-import Phaser, { Physics } from 'phaser';
-import { Game } from 'phaser';
-
-import { Boot } from './scenes/Boot';
-import { Preloader } from './scenes/Preloader';
-import { Decorate } from './scenes/Decorate';
+import { Boot } from './scenes/Boot.js';
+import { Preloader } from './scenes/Preloader.js';
+import { Decorate } from './scenes/Decorate.js';
+import { DonePresent } from './scenes/DonePresent.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -28,15 +26,16 @@ const config = {
       gravity: {
         y: 800
       },
-      debug: true
+      debug: false
     }
   },
 
   scene: [
     Boot,
     Preloader,
-    Decorate
+    Decorate,
+    DonePresent
   ]
 };
 
-export default new Game(config);
+export default new Phaser.Game(config);

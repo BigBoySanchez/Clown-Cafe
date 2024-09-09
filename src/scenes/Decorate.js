@@ -1,30 +1,67 @@
-import { GameObjects, Scene } from "phaser";
-import Phaser from "phaser";
-
-export class Decorate extends Scene {
+export class Decorate extends Phaser.Scene {
   constructor() {
     super('Decorate');
   }
 
   create() {
+    this.toppingStack = [];
+    
     const WIDTH = this.game.scale.width;
     const HEIGHT = this.game.scale.height;
     const TOPPING_H = HEIGHT;
     const TOPPING_W = 400;
     const MAX_TOPPINGS = 5;
     
-    //this.physics.add.image((WIDTH + TOPPING_W) / 2, 500, 'table').setScale(0.41);
-    //this.physics.add.image((WIDTH + TOPPING_W) / 2, 600, 'plate').setScale(0.2).refreshBody();
+    var cream = undefined;
+    var creamCollide = undefined;
+
     const table = this.physics.add.staticImage((WIDTH + TOPPING_W) / 2, 500, 'table').setScale(0.41).setImmovable(true);
     const plate = this.physics.add.staticImage((WIDTH + TOPPING_W) / 2, 600, 'plate').setScale(0.2).setImmovable(true);
     
     const toppingBox = this.add.rectangle(0, 0, TOPPING_W, TOPPING_H, 0x4b3952).setOrigin(0, 0);
     const toppingBody = this.physics.add.staticBody(0, 0, TOPPING_W, TOPPING_H);
     
-    // table.body.onCollide = true;
-    // table.refreshBody();
-    // table.body.y = 220; //has to be a better way
-    // table.body.setSize(WIDTH - TOPPING_W, 150);
+    //undo and clear buttons
+    // const rad = 20;
+    // this.add.circle(WIDTH - rad * 1.1, 0 + rad * 1.1, rad, 0xffffff);
+    const undoSize = 512;
+    const undoScale = 0.22;
+    const undoCombo = undoSize * undoScale;
+    
+    const clear = this.add.image(WIDTH - undoCombo, 0, 'clear')
+                          .setScale(undoScale / 5.125)
+                          .setOrigin(0)
+                          .setInteractive()
+                          .on('pointerdown', () => {
+                            this.toppingStack.forEach(element => {
+                              element.destroy();
+                              if(element.name === 'ice cream' && cream) {
+                                cream = undefined;
+                                this.addTopping(toppings[0]);
+                                done.destroy();
+                              }
+                            });
+                            this.toppingStack.length = 0;
+                          });
+
+    const undo = this.add.image(WIDTH - undoCombo, 0 + undoCombo, 'undo')
+                          .setScale(undoScale)
+                          .setOrigin(0)
+                          .setInteractive()
+                          .on('pointerdown', () => {
+                            const popped = this.toppingStack.pop();
+                            if(!popped) return;
+                            
+                            popped.destroy();
+                            if(popped.name === 'ice cream' && cream) {
+                              cream = undefined;
+                              this.addTopping(toppings[0]);
+                              done.destroy();
+                            }
+                            if(this.physics.getConfig().debug) console.log(this.toppingStack);
+                          });
+    
+    var done = undefined;
     
     plate.body.onCollide = true;
     plate.refreshBody();
@@ -49,8 +86,6 @@ export class Decorate extends Scene {
                             .setName('chocolate')
     ]
     
-    var cream = undefined;
-    var creamCollide = undefined;
 
     for (let i = 0; i < MAX_TOPPINGS; i++) {
       const SEPARATOR = i * TOPPING_H / MAX_TOPPINGS;
@@ -103,8 +138,6 @@ export class Decorate extends Scene {
       if(gameObject.name === 'ice cream') {
         dropping.setSize(gameObject.width, gameObject.height / 2.1, false);
         dropping.setOffset(0, 8);
-
-        //and allow toppings to go on it
       }
       
       if(gameObject.name === 'cone') {
@@ -112,18 +145,18 @@ export class Decorate extends Scene {
         dropping.setSize(216, dropping.height * 1.2);
       }
 
-      //this.physics.add.overlap(gameObject, plate);
-      //this.physics.add.overlap(gameObject, table);
       this.physics.add.overlap(gameObject, toppingBody);
       
       const coll = this.physics.add.collider(gameObject, plate);
       if(gameObject.name === 'ice cream') creamCollide = coll;
       else if(cream) this.physics.add.collider(gameObject, cream);
       dropping.setCollideWorldBounds(true, 0, 0, true);
+
+      dropping.setVelocity(0, 0);
     });
 
     this.physics.world.on('overlap', (obj1, obj2, b1, b2) => {
-      const topping = /*(b1.onOverlap)? obj2 :*/ obj1;
+      const topping = obj1;
       topping.body.destroy();
       
       this.add.tween({
@@ -150,26 +183,50 @@ export class Decorate extends Scene {
     });
 
     this.physics.world.on('collide', (obj1, obj2, b1, b2) => {
-      console.log("collision");
-      // Set immovable to stop further movement
+      // Ensure the object stops moving
+      obj1.body.enable = false;
       obj1.body.setImmovable(true);
-      obj1.body.setAllowGravity(false) // Ensure the object stops moving
+      obj1.body.setAllowGravity(false) 
+      obj1.body.stop();
 
       if(obj1.name === 'ice cream' && creamCollide) {
+        //console.log(obj1.y);
+        obj1.body.enable = true;
         this.physics.world.removeCollider(creamCollide);
         obj1.body.onCollide = true;
-        //this.physics.add.existing(obj1, true);
-        //obj1.body.setOffset(0, obj1.body.y - 500);
-
         cream = obj1;
+
+        //make done button
+        done = this.add.image(WIDTH - undoCombo, undoCombo * 2, 'done');
+        done.setScale(undo.width / done.width * undoScale);
+        done.setOrigin(0);
+        done.setInteractive();
+        done.on('pointerdown', () => {
+          this.scene.transition({
+            target: 'DonePresent',
+            duration: 1000,
+            sleep: false, //change after present
+            remove: true, //same here
+            allowInput: false,
+            moveBelow: true,
+            onUpdate: (progress) => {
+              this.cameras.main.setAlpha(1 - progress);
+            }
+          });
+        });
+
       } else {
         this.physics.world.remove(obj1.body);
-
       }
+
+      this.toppingStack.push(obj1);
     });
 
     this.physics.world.on('worldbounds', (body, up, down) => {
-     if(down) this.physics.world.remove(body);
+     if(down) {
+      this.physics.world.remove(body);
+      this.toppingStack.push(body.gameObject);
+    }
     });
   }
 
@@ -219,11 +276,6 @@ export class Decorate extends Scene {
     
     //edge cases where hitbox aint right
     if(newTopping.name === 'cone') {
-      // hitBox.y -= 108;
-
-      // hitBox.width *= 1.65;
-      // hitBox.height *= 1.65;
-
       newTopping.setInteractive({
         hitArea: newTopping.geom,
         hitAreaCallback: Phaser.Geom.Triangle.Contains,
